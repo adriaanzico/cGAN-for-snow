@@ -255,7 +255,7 @@ def cGAN(training_path, testing_path, steps):
       if (step) % 1000 == 0:
         display.clear_output(wait=True)
         if step != 0:
-          #print(f'Time taken for 1000 steps: {time.time()-start:.2f} sec')
+          print(f"Time taken for 1000 steps: {time.time()-start:.2f} sec")
 
         start = time.time()
 
