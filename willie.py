@@ -259,20 +259,20 @@ def cGAN(training_path, testing_path, steps):
 
         start = time.time()
 
-        print(f"Step: {step//1000}k hehehe what a number suiiiiuiiiui")
+         #print(f"Step: {step//1000}k hehehe what a number suiiiiuiiiui")
 
       train_step(input_image, target, step)
 
       # Training step
-      if (step+1) % 10 == 0:
-        print('.', end='', flush=True)
+      #if (step+1) % 10 == 0:
+        #print('.', end='', flush=True)
 
 
       # Save (checkpoint) the model every 5k steps
       if (step + 1) % 5000 == 0:
         generate_images(generator, example_input, example_target)
         checkpoint.save(file_prefix=checkpoint_prefix)
-        print("\n\n\n\nsaved a checkpoint\n\n\n\n")
+        #print("\n\n\n\nsaved a checkpoint\n\n\n\n")
 
   del test_lcm, train_lcm, train_sen2, test_sen2
 
