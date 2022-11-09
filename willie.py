@@ -254,8 +254,8 @@ def cGAN(training_path, testing_path, steps):
     for step, (input_image, target) in train_ds.repeat().take(steps).enumerate():
       if (step) % 1000 == 0:
         display.clear_output(wait=True)
-        if step != 0:
-          print(f"Time taken for 1000 steps: {time.time()-start:.2f} sec")
+        #if step != 0:
+          #print(f"Time taken for 1000 steps: {time.time()-start:.2f} sec")
 
         start = time.time()
 
