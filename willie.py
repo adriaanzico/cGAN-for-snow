@@ -8,10 +8,16 @@ import rasterio
 from matplotlib import pyplot as plt
 from IPython import display
 
-# training_path = 'npzs/clim_l8_4SZN_train1.npz'
-# testing_path = 'npzs/clim_l8_4SZN_test1.npz'
+# training_path = 'npzs/winter_train_norm.npz'
+# testing_path = 'npzs/winter_test_norm.npz'
+# steps = 15000
+# test_images_path = 'imagery/climate_winters/test'
+# temporary_folder = 'imagery/tmp/new6'
+# output_image = '/Users/adriaankeurhorst/Documents/MScThesis/imagery/merged_40k_2018.tif'
 
-def cGAN(training_path, testing_path, steps):
+# python script/willie.py npzs/winter_train_norm.npz npzs/winter_test_norm.npz 25000 imagery/climate_winters/test imagery/tmp/new5 imagery/merged_25k_2018.tif
+
+def cGAN(training_path, testing_path, steps, test_images_path, temporary_folder, output_image):
   def load_data(training_path, testing_path):
     data = np.load(training_path)
     train_lcm = data['arr_0']
@@ -44,9 +50,9 @@ def cGAN(training_path, testing_path, steps):
     test_sen2 = tf.data.Dataset.from_tensor_slices((test_sen2))
     test_sen2 = test_sen2.batch(BATCH_SIZE)
     return IMG_WIDTH, IMG_HEIGHT, OUTPUT_CHANNELS, train_lcm, train_sen2, test_lcm, test_sen2
-
+  print('starting the deception')
   IMG_WIDTH, IMG_HEIGHT, OUTPUT_CHANNELS, train_lcm, train_sen2, test_lcm, test_sen2 = load_data(training_path, testing_path)
-
+  print('time to load.')
   def prepare(train_lcm, train_sen2, test_lcm, test_sen2):
     train_dataset = tf.data.Dataset.zip((train_lcm, train_sen2))
     test_dataset = tf.data.Dataset.zip((test_lcm, test_sen2))
@@ -54,7 +60,7 @@ def cGAN(training_path, testing_path, steps):
     return train_dataset, test_dataset
 
   train_dataset, test_dataset = prepare(train_lcm, train_sen2, test_lcm, test_sen2)
-
+  print('datasets loaded. pray nothing crashes')
   def downsample(filters, size, apply_batchnorm=True):
     initializer = tf.random_normal_initializer(0., 0.02)
 
@@ -90,7 +96,7 @@ def cGAN(training_path, testing_path, steps):
     return result
 
   def Generator():
-    inputs = tf.keras.layers.Input(shape=[256, 256, 10], dtype='float32')
+    inputs = tf.keras.layers.Input(shape=[256, 256, 16], dtype='float32')
 
     down_stack = [
       downsample(64, 4, apply_batchnorm=False),  # (batch_size, 128, 128, 64)
@@ -139,6 +145,7 @@ def cGAN(training_path, testing_path, steps):
 
     return tf.keras.Model(inputs=inputs, outputs=x)
   generator = Generator()
+  print('generator configured')
   LAMBDA = 100
   loss_object = tf.keras.losses.BinaryCrossentropy(from_logits=True)
   def generator_loss(disc_generated_output, gen_output, target):
@@ -154,7 +161,7 @@ def cGAN(training_path, testing_path, steps):
   def Discriminator():
     initializer = tf.random_normal_initializer(0., 0.02)
 
-    inp = tf.keras.layers.Input(shape=[256, 256, 10], name='input_image')
+    inp = tf.keras.layers.Input(shape=[256, 256, 16], name='input_image')
     tar = tf.keras.layers.Input(shape=[256, 256, 7], name='target_image')
 
     x = tf.keras.layers.concatenate([inp, tar], axis=-1)  # (batch_size, 256, 256, channels*2)
@@ -179,7 +186,7 @@ def cGAN(training_path, testing_path, steps):
 
     return tf.keras.Model(inputs=[inp, tar], outputs=last)
   discriminator = Discriminator()
-
+  print('discriminator configured')
   def discriminator_loss(disc_real_output, disc_generated_output):
     real_loss = loss_object(tf.ones_like(disc_real_output), disc_real_output)
 
@@ -212,9 +219,6 @@ def cGAN(training_path, testing_path, steps):
       plt.imshow(display_list[i] * 0.5 + 0.5)
       plt.axis('off')
     plt.show()
-  #
-  # for example_input, example_target in test_dataset.take(4):
-  #   generate_images(generator, example_input, example_target)
 
   log_dir="logs/"
 
@@ -254,37 +258,86 @@ def cGAN(training_path, testing_path, steps):
     for step, (input_image, target) in train_ds.repeat().take(steps).enumerate():
       if (step) % 1000 == 0:
         display.clear_output(wait=True)
-        #if step != 0:
-          #print(f"Time taken for 1000 steps: {time.time()-start:.2f} sec")
+        if step != 0:
+          print(f'Time taken for 1000 steps: {time.time()-start:.2f} sec\n')
 
         start = time.time()
 
-         #print(f"Step: {step//1000}k hehehe what a number suiiiiuiiiui")
+        print(f"Step: {step//1000}k. how many steps have you taken today?")
 
       train_step(input_image, target, step)
 
       # Training step
-      #if (step+1) % 10 == 0:
-        #print('.', end='', flush=True)
+      if (step+1) % 10 == 0:
+        print('.', end='', flush=True)
 
 
       # Save (checkpoint) the model every 5k steps
       if (step + 1) % 5000 == 0:
-        generate_images(generator, example_input, example_target)
+        # generate_images(generator, example_input, example_target)
         checkpoint.save(file_prefix=checkpoint_prefix)
-        #print("\n\n\n\nsaved a checkpoint\n\n\n\n")
+        print("\n\n\n\nsaved a checkpoint bro\n\n\n\n")
 
   del test_lcm, train_lcm, train_sen2, test_sen2
 
   fit(train_dataset, test_dataset, steps=steps)
 
+  # Restoring the latest checkpoint in checkpoint_dir
+  # checkpoint.restore(tf.train.latest_checkpoint(checkpoint_dir))
+
+  def generate_images1(model, test_input):
+    prediction = model(test_input, training=True)
+    return prediction
+
+  def gtiff(dset, test_imagery_path, out_path, merged_path):
+    lst = []
+    for example_input, example_target in dset.take(len(dset)):
+      lst += [generate_images1(generator, example_input)]
+    lst = np.array(lst)
+    lst_min = np.min(lst)
+    lst_max = np.max(lst)
+    print('Loaded list to arrrrrrrr')
+    for i in range(len(dset)):
+      gen_out = lst[i]
+      out_path1 = os.path.join(out_path, f'test{i + 1}.tif')
+      test_im = rasterio.open(os.path.join(test_imagery_path, os.listdir(test_imagery_path)[i]))
+      eee = gen_out.transpose()
+      eee = np.reshape(eee, (7, 256, 256))
+      eee1 = ((eee - lst_min) / (lst_max - lst_min)) * 10
+      try:
+        # Create empty TIF image with dimensions of FIN but with name of FOUT.
+        with rasterio.open(
+                out_path1,
+                'w',
+                driver='GTiff',
+                height=256,
+                width=256,
+                count=7,
+                dtype='float32',
+                crs=test_im.crs,
+                transform=test_im.transform
+        ) as dst:
+          dst.write(eee1)
+          print(f"File created: {out_path1}")
+      except IOError as e:
+        print(f"Couldn't write a file at {out_path1}. Error: {e}")
+    print("\n\n\ngotta make a single big image now\n\n\ndo some exercises\n\n")
+    cmd = f'gdal_merge.py -ot Float32 -of GTiff -o {merged_path} {out_path}/*.tif'
+    os.system(cmd)
+
+  gtiff(test_dataset, test_images_path, temporary_folder, output_image)
+
+
 @click.command()
 @click.argument('training_path', type=click.Path(exists=True))
 @click.argument('testing_path', type=click.Path(exists=True))
 @click.argument('steps', type=int)
+@click.argument('test_images_path', type=click.Path(exists=True))
+@click.argument('temporary_folder', type=click.Path(exists=True))
+@click.argument('output_image', type=click.Path())
 
-def init(training_path, testing_path, steps):
-    cGAN(training_path, testing_path, steps)
+def init(training_path, testing_path, steps, test_images_path, temporary_folder, output_image):
+    cGAN(training_path, testing_path, steps, test_images_path, temporary_folder, output_image)
 
 if __name__ == "__main__":
     init()
