@@ -2,9 +2,9 @@ import rasterio
 from rasterio.enums import Resampling
 import click
 
-input = 'imagery/climate_test.tif'
-reference = 'imagery/sen2.tif'
-output = 'imagery/climate_test_resampled.tif'
+# input = 'imagery/climate_test.tif'
+# reference = 'imagery/sen2.tif'
+# output = 'imagery/climate_test_resampled.tif'
 
 def resample (input, reference, output):
     image1 = rasterio.open(input)
