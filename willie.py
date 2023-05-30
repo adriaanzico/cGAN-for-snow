@@ -10,7 +10,7 @@ from IPython import display
 
 # training_path = 'npzs/winter_train_norm.npz'
 # testing_path = 'npzs/winter_test_norm.npz'
-# steps = 15000
+# steps = 40000
 # test_images_path = 'imagery/climate_winters/test'
 # temporary_folder = 'imagery/tmp/new6'
 # output_image = '/Users/adriaankeurhorst/Documents/MScThesis/imagery/merged_40k_2018.tif'
