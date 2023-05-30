@@ -1,5 +1,5 @@
 # cGAN-for-snow
-Before starting, ensure you have an idea of what you want the input and target datasets to be. For my thesis, the input was a 16 band image containing environmental data and the target was a Landsat-8 image.
+Before starting, ensure you have an idea of what you want the input and target datasets to be. For my thesis, the input was a 16 band image containing environmental data and the target was a 7 band Landsat-8 image.
 
 # 1. resample.py
 First, resample the input and target images to match the resolution of the finest one. If the target image, in this study a Landsat-8 image, has the finest resolution, resample the input image to match its resolution with this script.
